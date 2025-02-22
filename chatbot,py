@@ -1,0 +1,100 @@
+import sys
+import requests
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QTextEdit, QLineEdit, QPushButton, QHBoxLayout
+from PyQt5.QtGui import QPalette, QColor
+
+class ChatGPTUI(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.setLightTheme()
+    
+    def initUI(self):
+        self.setWindowTitle("ChatGPT UI")
+        self.setGeometry(200, 200, 600, 500)
+        
+        # Layout
+        self.layout = QVBoxLayout()
+        
+        # Chat Display
+        self.chat_display = QTextEdit()
+        self.chat_display.setReadOnly(True)
+        self.layout.addWidget(self.chat_display)
+        
+        # Input & Send Button
+        input_layout = QHBoxLayout()
+        self.user_input = QLineEdit()
+        self.send_button = QPushButton("Send")
+        self.send_button.clicked.connect(self.get_response)
+        input_layout.addWidget(self.user_input)
+        input_layout.addWidget(self.send_button)
+        
+        self.layout.addLayout(input_layout)
+        
+        # Theme Toggle Button
+        self.theme_button = QPushButton("Toggle Theme")
+        self.theme_button.clicked.connect(self.toggle_theme)
+        self.layout.addWidget(self.theme_button)
+        
+        self.setLayout(self.layout)
+        self.dark_mode = False
+    
+    def get_response(self):
+        user_text = self.user_input.text()
+        if not user_text:
+            return
+        
+        self.chat_display.append(f"You: {user_text}")
+        self.user_input.clear()
+        
+        # Grok API details
+        API_URL = "https://api.x.ai/v1/chat/completions"
+        API_KEY = "Your API"  # Replace with your actual key
+
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "model": "grok-2-latest",
+            "messages": [
+                {"role": "system", "content": "You are a chatbot assistant limited to answering questions only about the website of Muhammad Faizan. The website includes information about his AI projects, skills, education, and contact details."},
+                {"role": "user", "content": user_text}
+            ]
+        }
+
+        try:
+            response = requests.post(API_URL, headers=headers, json=data)
+            response.raise_for_status()
+            bot_response = response.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            bot_response = f"Error: {str(e)}"
+        
+        self.chat_display.append(f"Grok: {bot_response}")
+    
+    def toggle_theme(self):
+        if self.dark_mode:
+            self.setLightTheme()
+        else:
+            self.setDarkTheme()
+    
+    def setLightTheme(self):
+        palette = QPalette()
+        palette.setColor(QPalette.Window, QColor(255, 255, 255))
+        palette.setColor(QPalette.WindowText, QColor(0, 0, 0))
+        self.setPalette(palette)
+        self.dark_mode = False
+    
+    def setDarkTheme(self):
+        palette = QPalette()
+        palette.setColor(QPalette.Window, QColor(53, 53, 53))
+        palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
+        self.setPalette(palette)
+        self.dark_mode = True
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = ChatGPTUI()
+    window.show()
+    sys.exit(app.exec_())
